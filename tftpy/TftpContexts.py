@@ -68,7 +68,7 @@ class TftpMetrics(object):
 class TftpContext(object):
     """The base class of the contexts."""
 
-    def __init__(self, host, port, timeout, localip = ""):
+    def __init__(self, host, port, timeout, localip = "", vrf_if=None):
         """Constructor for the base context, setting shared instance
         variables."""
         self.file_to_transfer = None
@@ -76,6 +76,8 @@ class TftpContext(object):
         self.options = None
         self.packethook = None
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        if vrf_if:
+                result = self.sock.setsockopt(socket.SOL_SOCKET, 25, vrf_if + '\0')
         if localip != "":
             self.sock.bind((localip, 0))
         self.sock.settimeout(timeout)
@@ -203,11 +205,13 @@ class TftpContextServer(TftpContext):
                  timeout,
                  root,
                  dyn_file_func=None,
-                 upload_open=None):
+                 upload_open=None,
+                 vrf_if=None):
         TftpContext.__init__(self,
                              host,
                              port,
                              timeout,
+                             vrf_if=vrf_if
                              )
         # At this point we have no idea if this is a download or an upload. We
         # need to let the start state determine that.

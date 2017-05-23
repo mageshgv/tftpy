@@ -32,7 +32,8 @@ class TftpServer(TftpSession):
     def __init__(self,
                  tftproot='/tftpboot',
                  dyn_file_func=None,
-                 upload_open=None):
+                 upload_open=None,
+                 vrf_if=None):
         self.listenip = None
         self.listenport = None
         self.sock = None
@@ -40,6 +41,7 @@ class TftpServer(TftpSession):
         self.root = os.path.abspath(tftproot)
         self.dyn_file_func = dyn_file_func
         self.upload_open = upload_open
+        self.vrf_if = vrf_if
         # A dict of sessions, where each session is keyed by a string like
         # ip:tid for the remote end.
         self.sessions = {}
@@ -73,7 +75,7 @@ class TftpServer(TftpSession):
             raise TftpException("The tftproot does not exist.")
 
     def listen(self, listenip="", listenport=DEF_TFTP_PORT,
-               timeout=SOCK_TIMEOUT):
+               timeout=SOCK_TIMEOUT, vrf_if=None):
         """Start a server listening on the supplied interface and port. This
         defaults to INADDR_ANY (all interfaces) and UDP port 69. You can also
         supply a different socket timeout value, if desired."""
@@ -86,6 +88,8 @@ class TftpServer(TftpSession):
         try:
             # FIXME - sockets should be non-blocking
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            if vrf_if:
+                result = self.sock.setsockopt(socket.SOL_SOCKET, 25, vrf_if + '\0')
             self.sock.bind((listenip, listenport))
             _, self.listenport = self.sock.getsockname()
         except socket.error as err:
@@ -161,7 +165,8 @@ class TftpServer(TftpSession):
                                                                timeout,
                                                                self.root,
                                                                self.dyn_file_func,
-                                                               self.upload_open)
+                                                               self.upload_open,
+                                                               vrf_if=vrf_if)
                         try:
                             self.sessions[key].start(buffer)
                         except TftpException as err:
